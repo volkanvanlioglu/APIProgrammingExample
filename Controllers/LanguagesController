@@ -1,0 +1,121 @@
+using Programming.API.Attributes;
+using Programming.API.Security;
+using Programming.DAL;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web.Http;
+using System.Web.Http.Description;
+
+namespace Programming.API.Controllers
+{
+    //[ApiException] Bu metodu controller seviyesinde tutarsak her bir controller metodunun üzerine yazmamıza gerek kalmaz. Ama biz bunu burada da kullanmayacağız. Application seviyesinde kullanacağız.
+
+    //Authentication: Kullanıcı giriş yapmış mı?
+    //Authorization: Giriş yapan kullanıcının hakları.
+
+    //Client → IIS (Proje IIS'te kuruluysa IIS Client'tan gelen isteği yakalar.) → HTTPMessageHandler (DelegatingHandler) Override SendAsync() → IHTTPActionResult (Yazdığımız metod) → HTTPMessageHandler (DelegatingHandler) Override SendAsync() → IIS → Client
+
+    [APIAuthorize(Roles = "A")]
+    public class LanguagesController : ApiController
+    {
+        LanguagesDAL L = new LanguagesDAL();
+
+        [ResponseType(typeof(IEnumerable<Languages>))]
+        public IHttpActionResult Get()
+        {
+            var Languages = L.GetAllLanguages();
+            return Ok(Languages); //Bu şekilde uzun uzun CreateResponse komutları yazmaktan kurtuluyoruz.
+        }
+
+        [ResponseType(typeof(Languages))]
+        public IHttpActionResult Get(int id) //Burada try-catch kullandık fakat try-catch mekanizmasını her bir metoda tek tek yazmamıza gerek yok. Tek bir yerden de yönetebiliyoruz.
+        {
+            var Language = L.GetLanguageById(id);
+            if (Language == null)
+            {
+                return NotFound();
+            }
+            return Ok(Language);
+
+            //try
+            //{
+            //    var Language = L.GetLanguageById(id);
+            //    if (Language == null)
+            //    {
+            //        return NotFound();
+            //    }
+            //    return Ok(Language);
+            //}
+            //catch (Exception e)
+            //{
+            //    HttpResponseMessage ErrorResponse = new HttpResponseMessage(HttpStatusCode.BadGateway);
+            //    ErrorResponse.ReasonPhrase = e.Message;
+            //    throw new HttpResponseException(ErrorResponse);
+            //}
+        }
+
+        [ResponseType(typeof(Languages))]
+        public IHttpActionResult Post(Languages Lang)
+        {
+            if (ModelState.IsValid)
+            {
+                var Language = L.CreateLanguage(Lang);
+                return CreatedAtRoute("DefaultApi", new { id = Language.ID }, Language);
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+        [ResponseType(typeof(Languages))]
+        public IHttpActionResult Update(int id, Languages Lang) //HTTP karşılığı PUT metodudur.
+        {
+            if (L.IsThereAnyLanguage(id) == false)
+            {
+                return NotFound();
+            }
+            else if (ModelState.IsValid == false)
+            {
+                return BadRequest(ModelState);
+            }
+            else
+            {
+                return Ok(L.UpdateLanguage(id, Lang));
+            }
+        }
+
+        public IHttpActionResult Delete(int id) //HTTP karşılığı DELETE metodudur.
+        {
+            if (L.IsThereAnyLanguage(id) == false)
+            {
+                return NotFound();
+            }
+            else
+            {
+                L.DeleteLanguage(id);
+                //return Ok(); Bu şekilde de kullanılabiliyor.
+                return StatusCode(HttpStatusCode.NoContent);
+            }
+        }
+
+        //[HttpGet]
+        //public IHttpActionResult SearchByName(string Name) // api/languages?name=Name
+        //{
+        //    return Ok("Name: " + Name);
+        //} Bu şekilde de kullanılabiliyor.
+
+        public IHttpActionResult GetSearchByName(string Name) // api/languages?name=Name
+        {
+            return Ok("Name: " + Name);
+        }
+
+        public IHttpActionResult GetSearchBySurname(string Surname) // api/languages?surname=Surname
+        {
+            return Ok("Surname: " + Surname);
+        }
+    }
+}
