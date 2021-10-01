@@ -1,0 +1,74 @@
+using Programming.DAL;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web.Http;
+
+namespace Programming.API.Controllers
+{
+    public class LanguagesBController : ApiController //Bu controller'da yapılan işlemler LanguagesController'da yapılan işlemlerin birebir aynısı olmakla birlikte IHttpActionResult Interface'i kullanarak yapılmaktadır.
+    {
+        LanguagesDAL L = new LanguagesDAL();
+
+        //[NonAction] Yazılan metodun bir action olmadığını göstermek için kullanılır.
+        public HttpResponseMessage Get()
+        {
+            var Languages = L.GetAllLanguages();
+            return Request.CreateResponse(HttpStatusCode.OK, Languages);
+        }
+
+        public HttpResponseMessage Get(int id)
+        {
+            var Language = L.GetLanguageById(id);
+            if (Language == null)
+            {
+                return Request.CreateResponse(HttpStatusCode.NotFound, "There's no such an entry!");
+            }
+            return Request.CreateResponse(HttpStatusCode.OK, Language);
+        }
+
+        public HttpResponseMessage Post(Languages Lang)
+        {
+            if (ModelState.IsValid)
+            {
+                var Language = L.CreateLanguage(Lang);
+                return Request.CreateResponse(HttpStatusCode.Created, Language);
+            }
+            else
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, ModelState);
+            }
+        }
+
+        public HttpResponseMessage Update(int id, Languages Lang) //HTTP karşılığı PUT metodudur.
+        {
+            if (L.IsThereAnyLanguage(id) == false)
+            {
+                return Request.CreateResponse(HttpStatusCode.NotFound, ModelState);
+            }
+            else if (ModelState.IsValid == false)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, ModelState);
+            }
+            else
+            {
+                return Request.CreateResponse(HttpStatusCode.OK, L.UpdateLanguage(id, Lang));
+            }
+        }
+
+        public HttpResponseMessage Delete(int id) //HTTP karşılığı DELETE metodudur.
+        {
+            if (L.IsThereAnyLanguage(id) == false)
+            {
+                return Request.CreateResponse(HttpStatusCode.NotFound, ModelState);
+            }
+            else
+            {
+                L.DeleteLanguage(id);
+                return Request.CreateResponse(HttpStatusCode.NoContent);
+            }
+        }
+    }
+}
